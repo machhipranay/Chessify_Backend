@@ -14,11 +14,13 @@ const uploadOnCloudinary = async (filePath, publicId) => {
       resource_type: "auto",
       public_id: publicId,  
     });
-    console.log("Upload successful:", result);
+    // console.log("Upload successful:", result);
+    if (filePath && fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
     return result;
   } catch (error) {
-    fs.unlinkSync(filePath);
-    return { message: "Failed to upload to Cloudinary"};
+    return { error };
   }
 };
 

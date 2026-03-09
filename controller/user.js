@@ -2,6 +2,7 @@ import User from "../models/user.model.js";
 import { responceHandler } from "../utils/responceHandler.js";
 import { encrypt, decrypt } from "../utils/cryptr.js";
 import { generateToken } from "../utils/jwt.auth.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 export const signUpUser = async ( req, res ) => {
 
@@ -10,18 +11,21 @@ export const signUpUser = async ( req, res ) => {
   email = email ? email.trim().toLowerCase() : "";
   password = password ? password.trim() : "";
   about = about ? about.trim() : "";
-
   // validation
+
   
-
+  
   try {
-
+    
     const user = await User.findOne({ username });
-    if( user ) {
-      return responceHandler( res , 400 , "User exists with same username" , null );
-    }
-
-    const newUser = await User.create({ username , email , password: encrypt(password), about , isAdmin , isBanned , country});
+    if( user ) return responceHandler( res , 400 , "User exists with same username" , null );
+    
+    const avatarLocalPath = req.file ? req.file.path : "";
+    if(!avatarLocalPath) return responceHandler( res , 400 , "Avatar is required" , null );
+  
+    const avatarResult = await uploadOnCloudinary(avatarLocalPath, `avatar/${username}`);
+    
+    const newUser = await User.create({ username , email , password: encrypt(password), about , isAdmin , isBanned , country, avatar: avatarResult.secure_url });
     return responceHandler( res , 201 , "User created successfully" , newUser );
   } catch (error) {
     return responceHandler( res , 500 , "Internal Server Error" , error );
@@ -29,6 +33,7 @@ export const signUpUser = async ( req, res ) => {
 }
 
 export const loginUser = async ( req, res ) => {
+  console.log(req.body);
   let { username , email , password } = req.body;
 
   username = username ? username.toLowerCase() : null;
@@ -61,7 +66,7 @@ export const loginUser = async ( req, res ) => {
       isBanned: user.isBanned,
       country: user.country,
       rating : user.rating,
-      status: user.status
+      status: user.status,
     };
 
     const token = generateToken( payload );
