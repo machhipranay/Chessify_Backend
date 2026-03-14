@@ -1,11 +1,12 @@
 import User from "../models/user.model.js";
 import { responceHandler } from "../utils/responceHandler.js";
 import { encrypt, decrypt } from "../utils/cryptr.js";
-import { generateToken } from "../utils/jwt.auth.js";
+import { generateAccessToken, generateRefreshToken } from "../utils/jwt.auth.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { hashPassword, comparePassword } from "../utils/bcrypt.js";
 
 export const signUpUser = async (req, res) => {
-  let { username, email, password, about, isAdmin, isBanned, country } =
+  let { username, email, password, about, country , titles } =
     req.body;
   username = username ? username.trim().toLowerCase() : "";
   email = email ? email.trim().toLowerCase() : "";
@@ -14,71 +15,49 @@ export const signUpUser = async (req, res) => {
   // validation
 
   try {
-    const user = await User.findOne({ username });
+    const user = await User.findOne( { username } );
     if (user)
       return responceHandler(res, 400, "User exists with same username", null);
 
     const avatarLocalPath = req.file ? req.file.path : "";
-    if (!avatarLocalPath)
-      return responceHandler(res, 400, "Avatar is required", null);
-
-    const avatarResult = await uploadOnCloudinary(
+    const avatarResult = avatarLocalPath? await uploadOnCloudinary(
       avatarLocalPath,
       `avatar/${username}`,
-    );
+    ) : {};
 
     const payload = {
       username,
       email,
-      password : encrypt(password),
+      password: await hashPassword(password),
       about,
-      isAdmin,
-      isBanned,
     };
 
-    if(avatarResult.error) return responceHandler(res, 400, "Avatar upload failed", null);
-    if(avatarResult.secure_url) payload.avatar = avatarResult.secure_url;
-    if(titles) payload.titles = titles;
-    if(country) payload.country = country;
+    if (avatarResult.error)
+      return responceHandler(res, 400, "Avatar upload failed", { error : avatarResult.error });
+    if (avatarResult.secure_url) payload.avatar = avatarResult.secure_url;
+    if (titles) payload.titles = titles;
+    if (country) payload.country = country;
+    await User.create(payload);
 
-    const newUser = await User.create({
-      username,
-      email,
-      password: encrypt(password),
-      about,
-      isAdmin,
-      isBanned,
-      country,
-      avatar: avatarResult.secure_url,
-    });
-    
-    return responceHandler(res, 201, "User created successfully", newUser);
+    return responceHandler(res, 201, "User created successfully");
   } catch (error) {
-    return responceHandler(res, 500, "Internal Server Error", error);
+    return responceHandler(res, 500, "Internal Server Error", {error : error});
   }
 };
 
 export const loginUser = async (req, res) => {
-  console.log(req.body);
-  let { username, email, password } = req.body;
+  let { username, password } = req.body;
 
   username = username ? username.toLowerCase() : null;
-  email = email ? email.toLowerCase() : null;
 
   try {
-    const conditions = [];
-    if (username) conditions.push({ username });
-    if (email) conditions.push({ email });
-
-    const user = await User.findOne({
-      $or: conditions,
-    });
+    const user = await User.findOne({username});
 
     if (!user) {
       return responceHandler(res, 400, "User not found", null);
     }
 
-    if (decrypt(user.password) != password) {
+    if (!await comparePassword(password,user.password)) {
       return responceHandler(res, 400, "Wrong password", null);
     }
 
@@ -88,25 +67,35 @@ export const loginUser = async (req, res) => {
       email: user.email,
       avatar: user.avatar,
       about: user.about,
-      isAdmin: user.isAdmin,
-      isBanned: user.isBanned,
       country: user.country,
       rating: user.rating,
       status: user.status,
     };
+    const accessToken = generateAccessToken((payload));
+    const refreshToken = generateRefreshToken((payload));
 
-    const token = generateToken(payload);
+    // save refreshToken in db
 
-    res.cookie("token", token, {
-      httpOnly: true,
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true, 
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    return responceHandler(res, 200, "User logged in successfully", { token });
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day
+    });
+
+    return responceHandler(res, 200, "User logged in successfully", { user : payload });
   } catch (error) {
-    return responceHandler(res, 500, "Internal Server Error", null);
+    return responceHandler(res, 500, "Internal Server Error", null, { error : error.message });
   }
 };
 
@@ -124,6 +113,6 @@ export const getUserProfile = async (req, res) => {
       user,
     );
   } catch (error) {
-    return responceHandler(res, 500, "Internal Server Error", null);
+    return responceHandler(res, 500, "Internal Server Error", null, { error : error });
   }
 };

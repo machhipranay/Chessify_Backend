@@ -12,7 +12,7 @@ router.post(
   asyncHandler(signUpUser),
 );
 
-router.post("/login", asyncHandler(loginUser));
+router.post("/login",upload.none(), asyncHandler(loginUser));
 
 router.get("/profile", authMiddleware, asyncHandler(getUserProfile));
 
