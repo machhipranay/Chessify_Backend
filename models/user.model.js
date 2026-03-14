@@ -56,7 +56,7 @@ const userSchema = new Schema(
     country :{
       type: String,
       enum: ["India", "USA", "UK", "Germany", "France", "Russia", "China", "Japan", "Other"],
-      default: "India",
+      default: "Other",
     },
 
     followers: {
