@@ -12,10 +12,9 @@ const gameSchema = new Schema(
         ref: "User",
     },
 
-    result: {
+    winner: {
         type: String,
-        enum: ["white", "black", "draw"],
-        default: "draw",
+        enum: ["white", "black", "draw","onGoing"],
     },
 
     moves: {
@@ -27,8 +26,22 @@ const gameSchema = new Schema(
         type: Number,
         default: 0,
     },
+
+    gameChats : {
+        type : [
+            {
+                sender : {
+                    type : Schema.Types.ObjectId,
+                    ref : "User",
+                },
+                message : {
+                    type : String,
+                },
+            }
+        ],
+        default : [],
+    }
   },
   { timestamp: true },
 );
-
 export default mongoose.model("Game", gameSchema);

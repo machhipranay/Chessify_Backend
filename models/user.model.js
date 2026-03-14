@@ -1,4 +1,3 @@
-import e from "express";
 import mongoose, { Schema } from "mongoose";
 
 const userSchema = new Schema(
@@ -17,20 +16,36 @@ const userSchema = new Schema(
       type: String,
       required: true,
     },
-
-    avatar : {
-      type: String,
-      default: "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png",
-    },
-
+    
     about: {
       type : String,
       default: "",
     },
 
+    avatar : {
+      type: String,
+      default: "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png",
+    },
+    
+    rating: {
+      type: Number,
+      default: 500,
+    },
+
+    titles : {
+      type : [String],
+      default: [],
+    },
+
     isAdmin: {
       type: Boolean,
       default: false,
+    },
+
+    onGoingGames: {
+      type: [Schema.Types.ObjectId],
+      ref: "Game",
+      default: [],
     },
 
     isBanned: {
@@ -50,9 +65,10 @@ const userSchema = new Schema(
       default: [],
     },
 
-    rating: {
-      type: Number,
-      default: 500,
+    friends : {
+      type: [Schema.Types.ObjectId],
+      ref: "User",
+      default: [],
     },
 
     status: {
@@ -60,6 +76,11 @@ const userSchema = new Schema(
       options: ["None", "Gold", "Platinum", "Diamond"],
       default: "None",
     },
+
+    refreshToken : {
+      type: String,
+      default: "",
+    }
   },
   { timestamp: true },
 );
