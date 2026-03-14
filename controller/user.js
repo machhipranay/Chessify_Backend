@@ -4,41 +4,49 @@ import { encrypt, decrypt } from "../utils/cryptr.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt.auth.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { hashPassword, comparePassword } from "../utils/bcrypt.js";
+import { userValidationSchema } from "../validation/user.js";
 
 export const signUpUser = async (req, res) => {
-  let { username, email, password, about, country , titles } =
+  let { username, email, password, about, country } =
     req.body;
   username = username ? username.trim().toLowerCase() : "";
   email = email ? email.trim().toLowerCase() : "";
   password = password ? password.trim() : "";
   about = about ? about.trim() : "";
-  // validation
+
+  // validation 
+  const { error } = userValidationSchema.validate(req.body);
+
+  if (error) {
+    return res.status(400).json({
+      error: error.details[0].message
+    });
+  }
 
   try {
     const user = await User.findOne( { username } );
     if (user)
       return responceHandler(res, 400, "User exists with same username", null);
-
+    
     const avatarLocalPath = req.file ? req.file.path : "";
     const avatarResult = avatarLocalPath? await uploadOnCloudinary(
       avatarLocalPath,
       `avatar/${username}`,
     ) : {};
-
+    
     const payload = {
       username,
       email,
       password: await hashPassword(password),
       about,
     };
-
+    
     if (avatarResult.error)
       return responceHandler(res, 400, "Avatar upload failed", { error : avatarResult.error });
     if (avatarResult.secure_url) payload.avatar = avatarResult.secure_url;
-    if (titles) payload.titles = titles;
     if (country) payload.country = country;
+    
     await User.create(payload);
-
     return responceHandler(res, 201, "User created successfully");
   } catch (error) {
     return responceHandler(res, 500, "Internal Server Error", {error : error});
