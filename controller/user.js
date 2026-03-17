@@ -190,3 +190,25 @@ export const editUserProfile = async (req, res) => {
     });
   }
 };
+
+export const removeAvatar = async( req,res) => {
+  const userId = req.userId;
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return responceHandler(res, 404, "User not found", null);
+    }
+    let promiseArray = [];
+    if (user.avatar.startsWith("https://res.cloudinary.com/chessify/")) {
+      promiseArray.push(deleteImageFromCloudinaryUsingUrl(user.avatar));
+    } 
+    user.avatar = undefined;
+    promiseArray.push(user.save());
+    await Promise.all(promiseArray);
+    return responceHandler(res, 200, "Avatar removed successfully");
+  } catch (error) {
+    return responceHandler(res, 500, "Internal Server Error", null, {
+      error: error.message,
+    });
+  }
+}
