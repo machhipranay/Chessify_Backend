@@ -19,8 +19,8 @@ const reportSchema = new Schema({
     required: true,
   },
 
-  description : {
-    type : String,
+  description: {
+    type: String,
   },
 
   status: {

@@ -2,9 +2,14 @@ import Joi from "joi";
 
 export const userValidationSchema = Joi.object({
   username: Joi.string()
-    .min(6)
-    .max(30)
-    .required(),
+  .min(6)
+  .max(30)
+  .pattern(/^[a-zA-Z0-9_]+$/)
+  .required()
+  .messages({
+    "string.pattern.base":
+      "Username can only contain letters, numbers, and underscores"
+  }),
 
   email: Joi.string()
     .email()

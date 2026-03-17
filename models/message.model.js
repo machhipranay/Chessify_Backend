@@ -1,4 +1,4 @@
-import mongoose, {Schema} from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
 const messageSchema = new Schema(
   {
@@ -9,18 +9,19 @@ const messageSchema = new Schema(
     },
 
     content: {
-      type : String,
+      type: String,
       required: true,
-    }, 
+    },
 
     conversation: {
       type: Schema.Types.ObjectId,
       ref: "Conversation",
       required: true,
     },
-  },{
+  },
+  {
     timestamps: true,
-  }
-  );
+  },
+);
 
 export default mongoose.model("Message", messageSchema);

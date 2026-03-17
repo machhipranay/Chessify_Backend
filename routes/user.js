@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { signUpUser, loginUser, getUserProfile } from "../controller/user.js";
+import { signUpUser, loginUser, getUserProfile, editUserProfile } from "../controller/user.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { authMiddleware } from "../utils/jwt.auth.js";
 import { upload } from "../utils/multer.js";
@@ -21,4 +21,7 @@ router.get("/logout", (req, res) => {
   return res.json({ message: "User logged out successfully" });
 });
 
+// router.get("/profile/email/verify", asyncHandler((req, res) => res.status(200).json({ message: "Email verification successful" })));
+
+router.post("/profile/edit", authMiddleware, upload.single("avatar"), asyncHandler(editUserProfile));
 export default router;

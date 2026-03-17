@@ -1,55 +1,61 @@
 import User from "../models/user.model.js";
 import { responceHandler } from "../utils/responceHandler.js";
-import { encrypt, decrypt } from "../utils/cryptr.js";
-import { generateAccessToken, generateRefreshToken } from "../utils/jwt.auth.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import {
+  generateAccessToken,
+  generateRefreshToken,
+} from "../utils/jwt.auth.js";
+import {
+  deleteImageFromCloudinaryUsingUrl,
+  uploadOnCloudinary,
+} from "../utils/cloudinary.js";
 import { hashPassword, comparePassword } from "../utils/bcrypt.js";
 import { userValidationSchema } from "../validation/user.js";
+import { userEditProfileValidation } from "../validation/userProfileEdit.js";
 
 export const signUpUser = async (req, res) => {
-  let { username, email, password, about, country } =
-    req.body;
+  let { username, email, password, about, country } = req.body;
   username = username ? username.trim().toLowerCase() : "";
   email = email ? email.trim().toLowerCase() : "";
   password = password ? password.trim() : "";
   about = about ? about.trim() : "";
 
-  // validation 
+  // validation
   const { error } = userValidationSchema.validate(req.body);
 
   if (error) {
     return res.status(400).json({
-      error: error.details[0].message
+      error: error.details[0].message,
     });
   }
 
   try {
-    const user = await User.findOne( { username } );
+    const user = await User.findOne({ username });
     if (user)
       return responceHandler(res, 400, "User exists with same username", null);
-    
+
     const avatarLocalPath = req.file ? req.file.path : "";
-    const avatarResult = avatarLocalPath? await uploadOnCloudinary(
-      avatarLocalPath,
-      `avatar/${username}`,
-    ) : {};
-    
+    const avatarResult = avatarLocalPath
+      ? await uploadOnCloudinary(avatarLocalPath, `avatar/${username}-${Date.now()}`)
+      : {};
+
     const payload = {
       username,
       email,
       password: await hashPassword(password),
       about,
     };
-    
+
     if (avatarResult.error)
-      return responceHandler(res, 400, "Avatar upload failed", { error : avatarResult.error });
+      return responceHandler(res, 400, "Avatar upload failed", {
+        error: avatarResult.error,
+      });
     if (avatarResult.secure_url) payload.avatar = avatarResult.secure_url;
     if (country) payload.country = country;
-    
+
     await User.create(payload);
     return responceHandler(res, 201, "User created successfully");
   } catch (error) {
-    return responceHandler(res, 500, "Internal Server Error", {error : error});
+    return responceHandler(res, 500, "Internal Server Error", { error: error });
   }
 };
 
@@ -59,28 +65,21 @@ export const loginUser = async (req, res) => {
   username = username ? username.toLowerCase() : null;
 
   try {
-    const user = await User.findOne({username});
+    const user = await User.findOne({ username });
 
     if (!user) {
       return responceHandler(res, 400, "User not found", null);
     }
 
-    if (!await comparePassword(password,user.password)) {
+    if (!(await comparePassword(password, user.password))) {
       return responceHandler(res, 400, "Wrong password", null);
     }
 
     const payload = {
       id: user._id,
-      username: user.username,
-      email: user.email,
-      avatar: user.avatar,
-      about: user.about,
-      country: user.country,
-      rating: user.rating,
-      status: user.status,
     };
-    const accessToken = generateAccessToken((payload));
-    const refreshToken = generateRefreshToken((payload));
+    const accessToken = generateAccessToken(payload);
+    const refreshToken = generateRefreshToken(payload);
 
     // save refreshToken in db
 
@@ -88,7 +87,7 @@ export const loginUser = async (req, res) => {
     await user.save();
 
     res.cookie("refreshToken", refreshToken, {
-      httpOnly: true, 
+      httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
@@ -101,14 +100,26 @@ export const loginUser = async (req, res) => {
       maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day
     });
 
-    return responceHandler(res, 200, "User logged in successfully", { user : payload });
+    const responce_payload = {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      about: user.about,
+      avatar: user.avatar,
+      country: user.country,
+    }
+    return responceHandler(res, 200, "User logged in successfully", {
+      user: responce_payload,
+    });
   } catch (error) {
-    return responceHandler(res, 500, "Internal Server Error", null, { error : error.message });
+    return responceHandler(res, 500, "Internal Server Error", null, {
+      error: error.message,
+    });
   }
 };
 
 export const getUserProfile = async (req, res) => {
-  const userId = req.user.id;
+  const userId = req.userId;
   try {
     const user = await User.findById(userId).select("-password");
     if (!user) {
@@ -121,6 +132,61 @@ export const getUserProfile = async (req, res) => {
       user,
     );
   } catch (error) {
-    return responceHandler(res, 500, "Internal Server Error", null, { error : error });
+    return responceHandler(res, 500, "Internal Server Error", null, {
+      error: error,
+    });
+  }
+};
+
+export const editUserProfile = async (req, res) => {
+  const { error } = userEditProfileValidation.validate(req.body);
+
+  if (error) return res.status(400).json({ error: error.details[0].message });
+
+  const userId = req.userId;
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return responceHandler(res, 404, "User not found", null);
+    }
+
+    const preAvatar = user.avatar;
+
+    const avatarLocalPath = req.file ? req.file.path : "";
+    const avatarResult = avatarLocalPath
+      ? await uploadOnCloudinary(avatarLocalPath, `avatar/${req.body.username || user.username}-${Date.now()}`)
+      : {};
+
+    if (avatarResult.error)
+      return responceHandler(res, 400, "Avatar upload failed", {
+        error: avatarResult.error,
+      });
+
+    user.username = req.body.username ? req.body.username : user.username;
+    user.email = req.body.email ? req.body.email : user.email;
+    user.about = req.body.about ? req.body.about : user.about;
+    user.country = req.body.country ? req.body.country : user.country;
+
+    if (avatarResult.secure_url) {
+      user.avatar = avatarResult.secure_url;
+      if (preAvatar.startsWith("https://res.cloudinary.com/chessify/",)){
+        await Promise.all([deleteImageFromCloudinaryUsingUrl(preAvatar), user.save()]);
+      } else {
+        await user.save();
+      }
+    } else {
+      await user.save();
+    }
+    return responceHandler(res, 200, "User profile edited successfully", {
+      username: user.username,
+      email: user.email,
+      about: user.about,
+      avatar: user.avatar,
+      country: user.country
+    });
+  } catch (error) {
+    return responceHandler(res, 500, "Internal Server Error", null, {
+      error: error.message,
+    });
   }
 };

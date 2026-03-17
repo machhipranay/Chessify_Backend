@@ -1,10 +1,10 @@
-import mongoose , {Schema} from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
 const conversationSchema = new mongoose.Schema(
   {
     members: {
       type: [Schema.Types.ObjectId],
-      ref : "User",
+      ref: "User",
       required: true,
     },
 
@@ -30,5 +30,7 @@ const conversationSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
+
+export default mongoose.model("Conversation", conversationSchema);

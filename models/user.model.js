@@ -16,24 +16,25 @@ const userSchema = new Schema(
       type: String,
       required: true,
     },
-    
+
     about: {
-      type : String,
+      type: String,
       default: "",
     },
 
-    avatar : {
+    avatar: {
       type: String,
-      default: "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png",
+      default:
+        "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png",
     },
-    
+
     rating: {
       type: Number,
       default: 500,
     },
 
-    titles : {
-      type : [String],
+    titles: {
+      type: [String],
       default: [],
     },
 
@@ -53,9 +54,19 @@ const userSchema = new Schema(
       default: false,
     },
 
-    country :{
+    country: {
       type: String,
-      enum: ["India", "USA", "UK", "Germany", "France", "Russia", "China", "Japan", "Other"],
+      enum: [
+        "India",
+        "USA",
+        "UK",
+        "Germany",
+        "France",
+        "Russia",
+        "China",
+        "Japan",
+        "Other",
+      ],
       default: "Other",
     },
 
@@ -65,7 +76,7 @@ const userSchema = new Schema(
       default: [],
     },
 
-    friends : {
+    friends: {
       type: [Schema.Types.ObjectId],
       ref: "User",
       default: [],
@@ -77,12 +88,12 @@ const userSchema = new Schema(
       default: "None",
     },
 
-    refreshToken : {
+    refreshToken: {
       type: String,
       default: "",
-    }
+    },
   },
-  { timestamp: true },
+  { timestamps: true },
 );
 
 export default mongoose.model("User", userSchema);

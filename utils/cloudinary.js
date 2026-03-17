@@ -14,7 +14,6 @@ const uploadOnCloudinary = async (filePath, publicId) => {
       resource_type: "auto",
       public_id: publicId,  
     });
-    // console.log("Upload successful:", result);
     if (filePath && fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
@@ -25,3 +24,26 @@ const uploadOnCloudinary = async (filePath, publicId) => {
 };
 
 export { uploadOnCloudinary };
+
+export const deleteImageFromCloudinaryUsingUrl = async (imageUrl) => {
+  try {
+    const parts = imageUrl.split("/");
+    const fileName = parts.pop();          // user123.png-{Data.mow()}
+    const folder = parts.pop();            // avatars
+    const publicId = `${folder}/${fileName.split(".")[0]}`;
+
+    const result = await cloudinary.uploader.destroy(publicId, { invalidate: true });
+    return result;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deleteImageFromCloudinaryUsingPublicId = async (publicId) => {
+  try {
+    const result = await cloudinary.uploader.destroy(publicId, {invalidate: true});
+    return result;
+  } catch (error) {
+    throw error;
+  }
+};

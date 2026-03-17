@@ -4,7 +4,7 @@ import User from "../models/user.model.js";
 
 export const generateAccessToken = (payload) => {
   return encrypt(
-    jwt.sign(payload, process.env.JWT_ACCESS_TOKEN_KEY, { expiresIn: "10s" }),
+    jwt.sign(payload, process.env.JWT_ACCESS_TOKEN_KEY, { expiresIn: "1h" }),
   );
 };
 
@@ -18,7 +18,7 @@ export const verifyAccessToken = (token) => {
 
 export const generateRefreshToken = (payload) => {
   return encrypt(
-    jwt.sign(payload, process.env.JWT_REFRESH_TOKEN_KEY, { expiresIn: "7d" }),
+    jwt.sign(payload, process.env.JWT_REFRESH_TOKEN_KEY, { expiresIn: "1d" }),
   );
 };
 
@@ -26,7 +26,7 @@ export const verifyRefreshToken = (token) => {
   try {
     return jwt.verify(decrypt(token), process.env.JWT_REFRESH_TOKEN_KEY);
   } catch (error) {
-    return null;
+    return error || null;
   }
 };
 
@@ -40,10 +40,8 @@ export const authMiddleware = async (req, res, next) => {
   const accessToken = req.cookies.accessToken;
 
   const decoded = verifyAccessToken(accessToken);
-
   if (decoded && decoded != {}) {
-    req.user = decoded;
-    // console.log("access token is still valid...");
+    req.userId = decoded.id;
     return next();
   }
 
@@ -58,13 +56,13 @@ export const authMiddleware = async (req, res, next) => {
 
   const refreshDecoded = (verifyRefreshToken(refreshToken));
   if (!refreshDecoded) {
-    return res.status(401).json({ error: "Invalid refresh token" });
+    return res.status(401).json({ error: refreshDecoded});
   }
 
   const user = await User.findById(refreshDecoded.id).select("-password");
 
   if (!user || user.refreshToken !== refreshToken) {
-    return res.status(401).json({ error: "Invalid refresh token" });
+    return res.status(401).json({ error: "Refresh Token is Invalid" });
   }
 
   // console.log("valid refresh token...");
@@ -93,6 +91,6 @@ export const authMiddleware = async (req, res, next) => {
     maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day
   });
 
-  req.user = refreshDecoded;
+  req.userId = refreshDecoded.id;
   next();
 };
