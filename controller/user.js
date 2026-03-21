@@ -201,7 +201,7 @@ export const editUserProfile = async (req, res) => {
 };
 
 export const editUsername = async (req, res) => {
-  const userId = req.body.userId;
+  const userId = req.userId;
 
   const user = await User.findById(userId);
   if (!user) {
@@ -234,7 +234,7 @@ export const editPassword = async (req, res) => {
 };
 
 export const editEmail = async (req, res) => {
-  const userId = req.body.userId;
+  const userId = req.userId;
   const email = req.body.email;
   const user = await User.findById(userId);
   if (!user) {
@@ -257,7 +257,7 @@ export const editEmail = async (req, res) => {
 };
 
 export const editAbout = async (req, res) => {
-  const userId = req.body.userId;
+  const userId = req.userId;
   const about = req.body.about;
 
   const user = await User.findById(userId);
@@ -318,7 +318,7 @@ export const editAvatar = async (req, res) => {
 };
 
 export const editCountry = async (req, res) => {
-  const userId = req.body.userId;
+  const userId = req.userId;
   const country = req.body.country;
 
   const user = await User.findById(userId);
@@ -349,7 +349,7 @@ export const editCountry = async (req, res) => {
 };
 
 export const editStatus = async (req, res) => {
-  const userId = req.body.userId;
+  const userId = req.userId;
   const status = req.body.status;
 
   const user = await User.findById(userId);

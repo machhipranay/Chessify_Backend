@@ -30,7 +30,7 @@ router.get("/profile", authMiddleware, asyncHandler(getUserProfile));
 router.get("/profile/avatar/delete",authMiddleware,asyncHandler(removeAvatar));
 
 router.post("/profile/edit/username", authMiddleware, asyncHandler(editUsername));
-router.post("/profile/edit/email", authMiddleware, asyncHandler(editEmail));
+router.post("/profile/edit/email",authMiddleware, asyncHandler(editEmail));
 router.post("/profile/edit/password", authMiddleware, asyncHandler(editPassword));
 router.post("/profile/edit/country", authMiddleware, asyncHandler(editCountry));
 router.post("/profile/edit/about", authMiddleware, asyncHandler(editAbout));
