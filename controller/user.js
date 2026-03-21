@@ -279,7 +279,7 @@ export const editAbout = async (req, res) => {
   return responceHandler(res, 200, "About changed successfully", { about });
 };
 
-export const changeAvatar = async (req, res) => {
+export const editAvatar = async (req, res) => {
   const userId = req.userId;
   const user = await User.findById(userId);
   if (!user) {
@@ -317,7 +317,7 @@ export const changeAvatar = async (req, res) => {
   });
 };
 
-export const changeCountry = async (req, res) => {
+export const editCountry = async (req, res) => {
   const userId = req.body.userId;
   const country = req.body.country;
 
@@ -348,7 +348,7 @@ export const changeCountry = async (req, res) => {
   });
 };
 
-export const changeStatus = async (req, res) => {
+export const editStatus = async (req, res) => {
   const userId = req.body.userId;
   const status = req.body.status;
 

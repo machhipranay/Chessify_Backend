@@ -13,7 +13,7 @@ const userSchema = new Schema(
     },
 
     isVerifiedEmail : {
-      type: boolean,
+      type: Boolean,
       default: false
     },
 

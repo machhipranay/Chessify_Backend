@@ -5,6 +5,15 @@ import {
   getUserProfile,
   editUserProfile,
   removeAvatar,
+  editUsername,
+  editAbout,
+  editEmail,
+  editPassword,
+  editAvatar,
+  editCountry,
+  editStatus,
+  followUser,
+  unfollowUser,
 } from "../controller/user.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { authMiddleware } from "../utils/jwt.auth.js";
@@ -18,11 +27,17 @@ router.post("/login", upload.none(), asyncHandler(loginUser));
 
 router.get("/profile", authMiddleware, asyncHandler(getUserProfile));
 
-router.get(
-  "/profile/avatar/delete",
-  authMiddleware,
-  asyncHandler(removeAvatar),
-);
+router.get("/profile/avatar/delete",authMiddleware,asyncHandler(removeAvatar));
+
+router.post("/profile/edit/username", authMiddleware, asyncHandler(editUsername));
+router.post("/profile/edit/email", authMiddleware, asyncHandler(editEmail));
+router.post("/profile/edit/password", authMiddleware, asyncHandler(editPassword));
+router.post("/profile/edit/country", authMiddleware, asyncHandler(editCountry));
+router.post("/profile/edit/about", authMiddleware, asyncHandler(editAbout));
+router.post("/profile/edit/status", authMiddleware, asyncHandler(editStatus));
+router.post("/profile/edit/Avatar", authMiddleware, asyncHandler(editAvatar));
+router.post("/profile/follow", authMiddleware, asyncHandler(followUser));
+router.post("/profile/unfollow", authMiddleware, asyncHandler(unfollowUser));
 
 router.get("/logout", (req, res) => {
   res.clearCookie("token");
@@ -36,5 +51,6 @@ router.post(
   authMiddleware,
   upload.single("avatar"),
   asyncHandler(editUserProfile),
-);
+); // edit any profile parameter using only 1 request
+
 export default router;
