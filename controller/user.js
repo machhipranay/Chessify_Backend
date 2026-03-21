@@ -191,6 +191,42 @@ export const editUserProfile = async (req, res) => {
   }
 };
 
+export const editUsername = async(req,res)=>{}
+
+export const editPassword = async(req,res)=>{
+  const prePassword = req.body.prePassword;
+  const userId = req.userId;
+
+  const user = await User.findById(userId);
+  if (!user) {
+    return responceHandler(res, 404, "User not found", null);
+  }
+
+  const isMatch = await comparePassword(prePassword, user.password);
+  if (!isMatch) {
+    return responceHandler(res, 400, "Incorrect password", null);
+  }
+
+  const newPassword = req.body.newPassword;
+  user.password = await hashPassword(newPassword, 10);
+  await user.save();
+  return responceHandler(res, 200, "Password changed successfully");
+}
+
+export const editEmail = async(req,res)=>{}
+
+export const editAbout = async(req,res)=>{}
+
+export const changeAvatar = async (req,res)=>{} 
+
+export const changeCountry = async(req,res)=>{}
+
+export const changeStatus = async(req,res)=>{}
+
+export const followUser = async(req,res) => {}
+
+export const unfollowUser = async(req,res) => {}
+
 export const removeAvatar = async( req,res) => {
   const userId = req.userId;
   try {
