@@ -35,7 +35,10 @@ export const signUpUser = async (req, res) => {
 
     const avatarLocalPath = req.file ? req.file.path : "";
     const avatarResult = avatarLocalPath
-      ? await uploadOnCloudinary(avatarLocalPath, `avatar/${username}-${Date.now()}`)
+      ? await uploadOnCloudinary(
+          avatarLocalPath,
+          `avatar/${username}-${Date.now()}`,
+        )
       : {};
 
     const payload = {
@@ -107,7 +110,7 @@ export const loginUser = async (req, res) => {
       about: user.about,
       avatar: user.avatar,
       country: user.country,
-    }
+    };
     return responceHandler(res, 200, "User logged in successfully", {
       user: responce_payload,
     });
@@ -154,7 +157,10 @@ export const editUserProfile = async (req, res) => {
 
     const avatarLocalPath = req.file ? req.file.path : "";
     const avatarResult = avatarLocalPath
-      ? await uploadOnCloudinary(avatarLocalPath, `avatar/${req.body.username || user.username}-${Date.now()}`)
+      ? await uploadOnCloudinary(
+          avatarLocalPath,
+          `avatar/${req.body.username || user.username}-${Date.now()}`,
+        )
       : {};
 
     if (avatarResult.error)
@@ -169,8 +175,11 @@ export const editUserProfile = async (req, res) => {
 
     if (avatarResult.secure_url) {
       user.avatar = avatarResult.secure_url;
-      if (preAvatar.startsWith("https://res.cloudinary.com/chessify/",)){
-        await Promise.all([deleteImageFromCloudinaryUsingUrl(preAvatar), user.save()]);
+      if (preAvatar.startsWith("https://res.cloudinary.com/chessify/")) {
+        await Promise.all([
+          deleteImageFromCloudinaryUsingUrl(preAvatar),
+          user.save(),
+        ]);
       } else {
         await user.save();
       }
@@ -182,7 +191,7 @@ export const editUserProfile = async (req, res) => {
       email: user.email,
       about: user.about,
       avatar: user.avatar,
-      country: user.country
+      country: user.country,
     });
   } catch (error) {
     return responceHandler(res, 500, "Internal Server Error", null, {
@@ -191,9 +200,20 @@ export const editUserProfile = async (req, res) => {
   }
 };
 
-export const editUsername = async(req,res)=>{}
+export const editUsername = async (req, res) => {
+  const userId = req.body.userId;
 
-export const editPassword = async(req,res)=>{
+  const user = await User.findById(userId);
+  if (!user) {
+    return responceHandler(res, 404, "User not found", null);
+  }
+
+  user.username = req.body.username;
+  await user.save();
+  return responceHandler(res, 200, "Username changed successfully");
+};
+
+export const editPassword = async (req, res) => {
   const prePassword = req.body.prePassword;
   const userId = req.userId;
 
@@ -211,23 +231,211 @@ export const editPassword = async(req,res)=>{
   user.password = await hashPassword(newPassword, 10);
   await user.save();
   return responceHandler(res, 200, "Password changed successfully");
-}
+};
 
-export const editEmail = async(req,res)=>{}
+export const editEmail = async (req, res) => {
+  const userId = req.body.userId;
+  const email = req.body.email;
+  const user = await User.findById(userId);
+  if (!user) {
+    return responceHandler(res, 404, "User not found", null);
+  }
 
-export const editAbout = async(req,res)=>{}
+  function isValidEmail(email) {
+    if (!email) return true;
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  }
 
-export const changeAvatar = async (req,res)=>{} 
+  if (!isValidEmail(email)) {
+    return responceHandler(res, 400, "Invalid email format", null);
+  }
 
-export const changeCountry = async(req,res)=>{}
+  user.email = email;
+  await user.save();
+  return responceHandler(res, 200, "Email changed successfully", { email });
+};
 
-export const changeStatus = async(req,res)=>{}
+export const editAbout = async (req, res) => {
+  const userId = req.body.userId;
+  const about = req.body.about;
 
-export const followUser = async(req,res) => {}
+  const user = await User.findById(userId);
+  if (!user) {
+    return responceHandler(res, 404, "User not found", null);
+  }
 
-export const unfollowUser = async(req,res) => {}
+  if (about.length > 500) {
+    return responceHandler(
+      res,
+      400,
+      "About should be less than 500 characters",
+      null,
+    );
+  }
 
-export const removeAvatar = async( req,res) => {
+  user.about = about;
+  await user.save();
+  return responceHandler(res, 200, "About changed successfully", { about });
+};
+
+export const changeAvatar = async (req, res) => {
+  const userId = req.userId;
+  const user = await User.findById(userId);
+  if (!user) {
+    return responceHandler(res, 404, "User not found", null);
+  }
+
+  const preAvatar = user.avatar;
+
+  if (!req.file) {
+    return responceHandler(res, 400, "Avatar file is required", null);
+  }
+
+  const avatarLocalPath = req.file.path;
+  const avatarResult = await uploadOnCloudinary(
+    avatarLocalPath,
+    `avatar/${user.username}-${Date.now()}`,
+  );
+
+  if (avatarResult.error)
+    return responceHandler(res, 400, "Avatar upload failed", {
+      error: avatarResult.error,
+    });
+
+  user.avatar = avatarResult.secure_url;
+  if (preAvatar.startsWith("https://res.cloudinary.com/chessify/")) {
+    await Promise.all([
+      deleteImageFromCloudinaryUsingUrl(preAvatar),
+      user.save(),
+    ]);
+  } else {
+    await user.save();
+  }
+  return responceHandler(res, 200, "Avatar changed successfully", {
+    avatar: user.avatar,
+  });
+};
+
+export const changeCountry = async (req, res) => {
+  const userId = req.body.userId;
+  const country = req.body.country;
+
+  const user = await User.findById(userId);
+  if (!user) {
+    return responceHandler(res, 404, "User not found", null);
+  }
+  const allowedCountries = [
+    "India",
+    "USA",
+    "UK",
+    "Germany",
+    "France",
+    "Russia",
+    "China",
+    "Japan",
+  ];
+
+  if (!allowedCountries.includes(country)) {
+    return responceHandler(res, 400, "Invalid country name", null);
+  } else {
+    user.country = country;
+  }
+
+  await user.save();
+  return responceHandler(res, 200, "Country changed successfully", {
+    country: user.country,
+  });
+};
+
+export const changeStatus = async (req, res) => {
+  const userId = req.body.userId;
+  const status = req.body.status;
+
+  const user = await User.findById(userId);
+  if (!user) {
+    return responceHandler(res, 404, "User not found", null);
+  }
+
+  const allowedStatus = ["None", "Gold", "Platinum", "Diamond"];
+
+  if (!allowedStatus.includes(status)) {
+    return responceHandler(res, 400, "Invalid status", null);
+  }
+
+  user.status = status;
+  await user.save();
+  return responceHandler(res, 200, "Status changed successfully", { status });
+};
+
+export const followUser = async (req, res) => {
+  const userId = req.userId;
+  const currUser = await User.findById(userId);
+  const followingUserId = req.body.userId;
+
+  if (userId === followingUserId) {
+    return responceHandler(res, 400, "You can't follow yourself");
+  }
+
+  if (!currUser) {
+    return responceHandler(res, 404, "User not found", null);
+  }
+
+  const followingUser = await User.findById(followingUserId);
+  if (!followingUser) {
+    return responceHandler(res, 404, "Following user not found", null);
+  }
+
+  if (followingUser.followers.includes(userId)) {
+    return responceHandler(res, 400, "You are already following this user");
+  }
+
+  if (currUser.followers.includes(followingUserId)) {
+    currUser.friends.push(followingUserId);
+    followingUser.friends.push(userId);
+    await Promise.all([currUser.save(), followingUser.save()]);
+  } else {
+    followingUser.followers.push(userId);
+    await followingUser.save();
+  }
+
+  return responceHandler(res, 200, "User followed successfully");
+};
+
+export const unfollowUser = async (req, res) => {
+  const userId = req.userId;
+  const currUser = await User.findById(userId);
+  const followingUserId = req.body.userId;
+
+  if (userId === followingUserId) {
+    return responceHandler(res, 400, "You can't unfollow yourself");
+  }
+
+  if (!currUser) {
+    return responceHandler(res, 404, "User not found", null);
+  }
+
+  const followingUser = await User.findById(followingUserId);
+  if (!followingUser) {
+    return responceHandler(res, 404, "Following user not found", null);
+  }
+
+  if (!followingUser.followers.includes(userId)) {
+    return responceHandler(res, 400, "You are not following this user");
+  }
+
+  if (currUser.followers.includes(followingUserId)) {
+    currUser.friends.pull(followingUserId);
+    followingUser.friends.pull(userId);
+    await Promise.all([currUser.save(), followingUser.save()]);
+  } else {
+    followingUser.followers.pull(userId);
+    await followingUser.save();
+  }
+  return responceHandler(res, 200, "User unfollowed successfully");
+};
+
+export const removeAvatar = async (req, res) => {
   const userId = req.userId;
   try {
     const user = await User.findById(userId);
@@ -237,7 +445,7 @@ export const removeAvatar = async( req,res) => {
     let promiseArray = [];
     if (user.avatar.startsWith("https://res.cloudinary.com/chessify/")) {
       promiseArray.push(deleteImageFromCloudinaryUsingUrl(user.avatar));
-    } 
+    }
     user.avatar = undefined;
     promiseArray.push(user.save());
     await Promise.all(promiseArray);
@@ -247,4 +455,4 @@ export const removeAvatar = async( req,res) => {
       error: error.message,
     });
   }
-}
+};
