@@ -23,7 +23,7 @@ const router = Router();
 
 router.post("/signup", upload.single("avatar"), asyncHandler(signUpUser));
 
-router.post("/login", upload.none(), asyncHandler(loginUser));
+router.post("/login", asyncHandler(loginUser));
 
 router.get("/profile", authMiddleware, asyncHandler(getUserProfile));
 
@@ -35,7 +35,7 @@ router.post("/profile/edit/password", authMiddleware, asyncHandler(editPassword)
 router.post("/profile/edit/country", authMiddleware, asyncHandler(editCountry));
 router.post("/profile/edit/about", authMiddleware, asyncHandler(editAbout));
 router.post("/profile/edit/status", authMiddleware, asyncHandler(editStatus));
-router.post("/profile/edit/Avatar", authMiddleware, asyncHandler(editAvatar));
+router.post("/profile/edit/avatar", authMiddleware, upload.single("avatar"), asyncHandler(editAvatar));
 router.post("/profile/follow", authMiddleware, asyncHandler(followUser));
 router.post("/profile/unfollow", authMiddleware, asyncHandler(unfollowUser));
 

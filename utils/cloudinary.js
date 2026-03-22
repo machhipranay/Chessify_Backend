@@ -19,6 +19,9 @@ const uploadOnCloudinary = async (filePath, publicId) => {
     }
     return result;
   } catch (error) {
+    if (filePath && fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
     return { error };
   }
 };

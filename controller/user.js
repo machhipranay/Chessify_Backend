@@ -11,6 +11,8 @@ import {
 import { hashPassword, comparePassword } from "../utils/bcrypt.js";
 import { userValidationSchema } from "../validation/user.js";
 import { userEditProfileValidation } from "../validation/userProfileEdit.js";
+import { banUserByUserId, followUserByUserIds, unfollowUserByUserIds } from "../service/user.js";
+import { withTransaction } from "../utils/mongo.transaction.js";
 
 export const signUpUser = async (req, res) => {
   let { username, email, password, about, country } = req.body;
@@ -124,7 +126,7 @@ export const loginUser = async (req, res) => {
 export const getUserProfile = async (req, res) => {
   const userId = req.userId;
   try {
-    const user = await User.findById(userId).select("-password");
+    const user = await User.findById(userId).select("-password -refreshToken");
     if (!user) {
       return responceHandler(res, 404, "User not found", null);
     }
@@ -207,14 +209,43 @@ export const editUsername = async (req, res) => {
   if (!user) {
     return responceHandler(res, 404, "User not found", null);
   }
+  
+  function validateUsername(username) {
+    if (typeof username !== "string") {
+      return "Username must be a string";
+    }
 
-  user.username = req.body.username;
-  await user.save();
+    if (username.length < 6) {
+      return "Username must be at least 6 characters long";
+    }
+
+    if (username.length > 30) {
+      return "Username must be at most 30 characters long";
+    }
+
+    const regex = /^[a-zA-Z0-9_]+$/;
+    if (!regex.test(username)) {
+      return "Username can only contain letters, numbers, and underscores";
+    }
+
+    return null; // valid
+  }
+
+  const error = validateUsername(req.body.username);
+  if (error) {
+    return responceHandler(res, 400, error, null);
+  }
+
+  const existingUser = await User.findOne({ username: req.body.username });
+  if (existingUser) {
+    return responceHandler(res, 400, "Username already exists", null);
+  }
+  await user.updateOne({ username: req.body.username });
   return responceHandler(res, 200, "Username changed successfully");
 };
 
 export const editPassword = async (req, res) => {
-  const prePassword = req.body.prePassword;
+  const oldPassword = req.body.oldPassword;
   const userId = req.userId;
 
   const user = await User.findById(userId);
@@ -222,14 +253,12 @@ export const editPassword = async (req, res) => {
     return responceHandler(res, 404, "User not found", null);
   }
 
-  const isMatch = await comparePassword(prePassword, user.password);
+  const isMatch = await comparePassword(oldPassword, user.password);
   if (!isMatch) {
     return responceHandler(res, 400, "Incorrect password", null);
   }
 
-  const newPassword = req.body.newPassword;
-  user.password = await hashPassword(newPassword, 10);
-  await user.save();
+  await user.updateOne({ password: await hashPassword(req.body.password) });
   return responceHandler(res, 200, "Password changed successfully");
 };
 
@@ -251,8 +280,7 @@ export const editEmail = async (req, res) => {
     return responceHandler(res, 400, "Invalid email format", null);
   }
 
-  user.email = email;
-  await user.save();
+  await user.updateOne({ email });
   return responceHandler(res, 200, "Email changed successfully", { email });
 };
 
@@ -274,8 +302,7 @@ export const editAbout = async (req, res) => {
     );
   }
 
-  user.about = about;
-  await user.save();
+  await user.updateOne({ about });
   return responceHandler(res, 200, "About changed successfully", { about });
 };
 
@@ -338,11 +365,9 @@ export const editCountry = async (req, res) => {
 
   if (!allowedCountries.includes(country)) {
     return responceHandler(res, 400, "Invalid country name", null);
-  } else {
-    user.country = country;
   }
 
-  await user.save();
+  await user.updateOne({ country });
   return responceHandler(res, 200, "Country changed successfully", {
     country: user.country,
   });
@@ -363,75 +388,23 @@ export const editStatus = async (req, res) => {
     return responceHandler(res, 400, "Invalid status", null);
   }
 
-  user.status = status;
-  await user.save();
+  await user.updateOne({ status });
   return responceHandler(res, 200, "Status changed successfully", { status });
 };
 
 export const followUser = async (req, res) => {
   const userId = req.userId;
-  const currUser = await User.findById(userId);
   const followingUserId = req.body.userId;
 
-  if (userId === followingUserId) {
-    return responceHandler(res, 400, "You can't follow yourself");
-  }
-
-  if (!currUser) {
-    return responceHandler(res, 404, "User not found", null);
-  }
-
-  const followingUser = await User.findById(followingUserId);
-  if (!followingUser) {
-    return responceHandler(res, 404, "Following user not found", null);
-  }
-
-  if (followingUser.followers.includes(userId)) {
-    return responceHandler(res, 400, "You are already following this user");
-  }
-
-  if (currUser.followers.includes(followingUserId)) {
-    currUser.friends.push(followingUserId);
-    followingUser.friends.push(userId);
-    await Promise.all([currUser.save(), followingUser.save()]);
-  } else {
-    followingUser.followers.push(userId);
-    await followingUser.save();
-  }
-
+  await withTransaction(async (session) => await followUserByUserIds(userId, followingUserId,session));
   return responceHandler(res, 200, "User followed successfully");
 };
 
 export const unfollowUser = async (req, res) => {
   const userId = req.userId;
-  const currUser = await User.findById(userId);
   const followingUserId = req.body.userId;
 
-  if (userId === followingUserId) {
-    return responceHandler(res, 400, "You can't unfollow yourself");
-  }
-
-  if (!currUser) {
-    return responceHandler(res, 404, "User not found", null);
-  }
-
-  const followingUser = await User.findById(followingUserId);
-  if (!followingUser) {
-    return responceHandler(res, 404, "Following user not found", null);
-  }
-
-  if (!followingUser.followers.includes(userId)) {
-    return responceHandler(res, 400, "You are not following this user");
-  }
-
-  if (currUser.followers.includes(followingUserId)) {
-    currUser.friends.pull(followingUserId);
-    followingUser.friends.pull(userId);
-    await Promise.all([currUser.save(), followingUser.save()]);
-  } else {
-    followingUser.followers.pull(userId);
-    await followingUser.save();
-  }
+  await withTransaction(async (session) => await unfollowUserByUserIds(userId, followingUserId, session));
   return responceHandler(res, 200, "User unfollowed successfully");
 };
 
@@ -456,3 +429,9 @@ export const removeAvatar = async (req, res) => {
     });
   }
 };
+
+export const banUser = async(req,res) => {
+  const userId = req.userId;
+  await banUserByUserId(userId);
+  return responceHandler(res, 200, "User banned successfully");
+}
