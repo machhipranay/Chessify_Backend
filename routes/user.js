@@ -14,6 +14,7 @@ import {
   editStatus,
   followUser,
   unfollowUser,
+  removeAvatar
 } from "../controller/user.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { authMiddleware } from "../utils/jwt.auth.js";
@@ -36,8 +37,10 @@ router.post("/profile/edit/country", authMiddleware, asyncHandler(editCountry));
 router.post("/profile/edit/about", authMiddleware, asyncHandler(editAbout));
 router.post("/profile/edit/status", authMiddleware, asyncHandler(editStatus));
 router.post("/profile/edit/avatar", authMiddleware, upload.single("avatar"), asyncHandler(editAvatar));
-router.post("/profile/follow", authMiddleware, asyncHandler(followUser));
-router.post("/profile/unfollow", authMiddleware, asyncHandler(unfollowUser));
+router.get("/profile/avatar/remove", authMiddleware, asyncHandler(removeAvatar));
+
+router.post("/follow", authMiddleware, asyncHandler(followUser));
+router.post("/unfollow", authMiddleware, asyncHandler(unfollowUser));
 
 router.get("/logout", (req, res) => {
   res.clearCookie("token");
