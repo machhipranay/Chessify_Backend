@@ -5,6 +5,7 @@ import axios from "axios";
 import cors from "cors";
 import userRouter from "./routes/user.js";
 import gameRouter from "./routes/game.js";
+import chatRouter from "./routes/conversation.js";
 import cookieParser from "cookie-parser";
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
@@ -59,3 +60,4 @@ app.get("/chess.com/player/:username", async (req, res) => {
 
 app.use("/api/user", userRouter);
 app.use("/api/game", gameRouter);
+app.use("/api/chat", chatRouter);

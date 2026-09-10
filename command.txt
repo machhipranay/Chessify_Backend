@@ -1,0 +1,30 @@
+i want you to go to each route and each controller and write information of that function or route so that it will be easier to understand
+
+like do this kind  of stuff
+
+// 
+URL : /api/v1/user/profile
+METHOD TYPE : GET
+
+
+data body : {
+    key1:val1,
+    key2:val2,
+    ...
+}
+
+data params : {
+    key1:val1,
+    key2:val2,
+    ...
+}
+
+Token : yes or no and the format in which it will be sent , in headers 
+
+response body : {}
+
+
+\\
+
+
+anything else you want to add in that file do it 
