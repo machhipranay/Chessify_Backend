@@ -13,7 +13,8 @@ import {
   editCountry,
   editStatus,
   followUser,
-  unfollowUser
+  unfollowUser,
+  removeAvatar
 } from "../controller/user.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { authMiddleware } from "../utils/jwt.auth.js";
