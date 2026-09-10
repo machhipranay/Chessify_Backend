@@ -99,6 +99,32 @@ const userSchema = new Schema(
       default: "None",
     },
 
+    gamesPlayed: {
+      type: Number,
+      default: 0,
+    },
+
+    wins: {
+      type: Number,
+      default: 0,
+    },
+
+    losses: {
+      type: Number,
+      default: 0,
+    },
+
+    draws: {
+      type: Number,
+      default: 0,
+    },
+
+    gameHistory: {
+      type: [Schema.Types.ObjectId],
+      ref: "Game",
+      default: [],
+    },
+
     refreshToken: {
       type: String,
       default: "",
